@@ -108,10 +108,19 @@ label.row{font-weight:500;font-size:14px;color:var(--text)}
 body{align-items:center;background:radial-gradient(circle at 15% 10%,rgba(108,76,245,.42),transparent 45%),radial-gradient(circle at 85% 90%,rgba(255,95,162,.36),transparent 45%),var(--bg)}
 #app{height:min(900px,calc(100% - 32px));border-radius:32px;overflow:hidden;box-shadow:0 30px 80px rgba(40,20,120,.38)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-#pwa{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:1000;display:none;align-items:center;gap:8px;max-width:calc(100% - 24px);background:var(--surface);color:var(--text);border:2px solid var(--line);border-radius:99px;padding:6px 8px 6px 14px;box-shadow:0 10px 30px rgba(60,40,160,.25);font-size:13px;font-weight:600}
-#pwa button{border:0;border-radius:99px;font:inherit;font-weight:800;cursor:pointer;padding:7px 12px}
-#pwa .go{color:#fff;background:linear-gradient(135deg,var(--p),var(--p2))}
-#pwa .x{background:var(--line);color:var(--text);padding:7px 10px}
+#pwa{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));z-index:1000;display:none;flex-direction:column;gap:12px;width:calc(100% - 24px);max-width:440px;padding:14px;border:2px solid transparent;border-radius:24px;background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(135deg,var(--p),var(--p2)) border-box;color:var(--text);box-shadow:0 18px 44px rgba(60,40,160,.38);opacity:0;transform:translate(-50%,-130%);transition:transform .5s cubic-bezier(.2,.9,.3,1.15),opacity .3s}
+#pwa.show{opacity:1;transform:translate(-50%,0)}
+#pwa .ph{display:flex;align-items:center;gap:12px}
+#pwa .pi{width:52px;height:52px;border-radius:15px;flex:none;box-shadow:0 6px 16px rgba(108,76,245,.4)}
+#pwa .pb{min-width:0}
+#pwa .pb b{display:block;font-size:16px;font-weight:800;line-height:1.2}
+#pwa .pb span{display:block;margin-top:3px;font-size:12.5px;line-height:1.4;font-weight:500;color:var(--muted)}
+#pwa .pb span i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:7px;background:var(--line);color:var(--text);font-weight:800;vertical-align:middle}
+#pwa .pa{display:flex;gap:8px}
+#pwa button{flex:1;border:0;border-radius:14px;font:inherit;font-size:14px;font-weight:800;cursor:pointer;padding:11px 12px;transition:transform .15s}
+#pwa button:active{transform:scale(.97)}
+#pwa .go{color:#fff;background:linear-gradient(135deg,var(--p),var(--p2));box-shadow:0 6px 16px rgba(108,76,245,.35);flex:1.6}
+#pwa .x{background:var(--line);color:var(--text)}
 main.lg{display:flex;flex-direction:column;padding-bottom:16px}
 main.lg .hero{flex:none;padding:clamp(14px,3.5vh,24px) 20px clamp(18px,4vh,32px);margin-bottom:clamp(8px,2vh,16px)}
 .lgb{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
@@ -461,23 +470,25 @@ function hapus(id){
 }
 boot();
 </script>
-<div id="pwa" role="dialog" aria-label="Pasang aplikasi"><span id="pwat"></span><button class="go" id="pwago">Pasang</button><button class="x" id="pwax" aria-label="Tutup">✕</button></div>
+<div id="pwa" role="dialog" aria-label="Pasang aplikasi"><div class="ph"><img class="pi" src="/icons/icon-192.png" alt="" width="52" height="52"><div class="pb"><b>Pasang Abisisakti</b><span id="pwat"></span></div></div><div class="pa"><button class="x" id="pwax">Nanti saja</button><button class="go" id="pwago">📲 Pasang sekarang</button></div></div>
 <script>
 (function(){
   if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}
   var box=document.getElementById('pwa'),txt=document.getElementById('pwat'),go=document.getElementById('pwago'),x=document.getElementById('pwax'),ev=null,KEY='abisisakti-pwa-tutup';
   function standalone(){return window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
   function ditutup(){try{return localStorage.getItem(KEY)==='1'}catch(e){return false}}
-  function tutup(){box.style.display='none';try{localStorage.setItem(KEY,'1')}catch(e){}}
+  function buka(){box.style.display='flex';setTimeout(function(){box.classList.add('show')},60)}
+  function sembunyi(){box.classList.remove('show');setTimeout(function(){box.style.display='none'},400)}
+  function tutup(){sembunyi();try{localStorage.setItem(KEY,'1')}catch(e){}}
   x.onclick=tutup;
   window.addEventListener('beforeinstallprompt',function(e){
     e.preventDefault();ev=e;if(standalone()||ditutup())return;
-    txt.textContent='📲 Pasang Abisisakti di layar utama';go.style.display='';box.style.display='flex'});
-  go.onclick=function(){if(!ev)return;box.style.display='none';ev.prompt();ev.userChoice.finally(function(){ev=null})};
-  window.addEventListener('appinstalled',function(){box.style.display='none'});
+    txt.textContent='Buka lebih cepat dari layar utama, tampil layar penuh seperti aplikasi biasa.';go.style.display='';x.textContent='Nanti saja';buka()});
+  go.onclick=function(){if(!ev)return;sembunyi();ev.prompt();ev.userChoice.finally(function(){ev=null})};
+  window.addEventListener('appinstalled',sembunyi);
   var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
   if(ios&&!standalone()&&!ditutup()){
-    txt.textContent='Untuk memasang: ketuk Bagikan lalu "Tambah ke Layar Utama"';go.style.display='none';box.style.display='flex'}
+    txt.innerHTML='Ketuk <i>⎙</i> Bagikan, lalu pilih <i>＋</i> <b style="display:inline;font-size:inherit">Tambah ke Layar Utama</b>.';go.style.display='none';x.textContent='Mengerti';buka()}
 })();
 </script>
 </body>
