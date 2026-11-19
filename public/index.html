@@ -129,7 +129,7 @@ main.lg .hero{flex:none;padding:clamp(14px,3.5vh,24px) 20px clamp(18px,4vh,32px)
 <script>
 var COL={H:'#12b886',I:'#3b82f6',S:'#f59e0b',A:'#ef4444'},LBL={H:'Hadir',I:'Izin',S:'Sakit',A:'Alpa'};
 var PAL=['#6c4cf5','#ff5fa2','#12b886','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
-var KEY='absensi-siswa-v1',D,tab='home',sess=null,cur={kelas:null,tgl:null,mark:{}},rk={kelas:'',bulan:''};
+var hk='ALL';var KEY='absensi-siswa-v1',D,tab='home',sess=null,cur={kelas:null,tgl:null,mark:{}},rk={kelas:'',bulan:''};
 function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 D={guru:'',kelas:[],siswa:[],absen:{},he:{},set:{}};
 var API_URL='https://script.google.com/macros/s/AKfycbykXoU7ggOY9_0lhFDGLjhVFYX8bt9wIzEwRbOLCxiFpP8BPRH9-odbn-K77ukxaHGfEg/exec';
@@ -191,7 +191,7 @@ function loginV(){
   '<div class="card"><h2>Masuk guru</h2><form onsubmit="login();return false"><label>NIP / ID Guru</label><input id="gn" placeholder="Masukkan NIP atau ID" autocomplete="username" autocapitalize="off" style="margin:6px 0 12px"><label>PIN</label><div class="pw"><input id="gp" type="password" placeholder="Masukkan PIN" autocomplete="current-password"><button type="button" class="eye" id="ge" onclick="lihatPin()" aria-label="Tampilkan PIN">'+EYE+'</button></div>'+
   '<label class="row" style="margin-bottom:8px;cursor:pointer"><input id="ga" type="checkbox" checked style="width:auto;padding:0"> Simpan akun di browser ini</label><label class="row" style="margin-bottom:14px;cursor:pointer"><input id="gi" type="checkbox" checked style="width:auto;padding:0"> Tetap masuk di perangkat ini</label><button class="btn" type="submit">Masuk</button></form></div></div>'}
 function masuk(r,ingat,pesan,simpan){
-  D={guru:r.nama,kelas:r.kelas,siswa:r.siswa,absen:r.absen,he:r.he,set:r.set,gurus:r.gurus||[],pengajar:r.pengajar||{},kepsek:r.kepsek||{}};sub='he';sess={id:r.id,nama:r.nama,token:r.token,admin:r.admin};hs.bulan=null;tab='home';cur={kelas:r.kelas[0],tgl:today(),mark:{}};rk={kelas:'',bulan:''};
+  D={guru:r.nama,kelas:r.kelas,siswa:r.siswa,absen:r.absen,he:r.he,set:r.set,gurus:r.gurus||[],pengajar:r.pengajar||{},kepsek:r.kepsek||{}};sub='he';sess={id:r.id,nama:r.nama,token:r.token,admin:r.admin};hs.bulan=null;tab='home';hk=r.admin?'ALL':'';cur={kelas:r.kelas[0],tgl:today(),mark:{}};rk={kelas:'',bulan:''};
   if(ingat)lsSet(r.token);else lsDel();if(simpan)akunSet(r.id,r.nama);if(r.set)skSet(r.set.Sekolah);
   Swal.close();render();T.fire({icon:'success',title:pesan+r.nama})
 }
@@ -212,16 +212,28 @@ function boot(){
   api('sesi',t).then(function(r){if(r&&r.ok)masuk(r,true,'Selamat datang kembali, ');else{lsDel();render();muatSekolah()}}).catch(function(){render();muatSekolah()})
 }
 function homeV(){
-  var t=today(),sis=D.siswa.filter(function(s){return s.kelas==cur.kelas}),c={H:0,I:0,S:0,A:0},sudah=0;
-  sis.forEach(function(s){var k=D.absen[t+'|'+s.id];if(k){c[k]++;sudah++}});
+  var t=today(),all=!!(sess&&sess.admin&&hk==='ALL'),sis=all?D.siswa:D.siswa.filter(function(s){return s.kelas==cur.kelas}),c={H:0,I:0,S:0,A:0},sudah=0;
+  var per={};D.kelas.forEach(function(k){per[k]={n:0,s:0,H:0,I:0,S:0,A:0}});
+  sis.forEach(function(s){var k=D.absen[t+'|'+s.id],p=per[s.kelas];if(p)p.n++;if(k){c[k]++;sudah++;if(p){p.s++;p[k]++}}});
   var pct=sis.length?Math.round(c.H/sis.length*100):0;
   var tgl=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   var st=['H','I','S','A'].map(function(k){return '<div class="stat" style="background:'+COL[k]+'"><b>'+c[k]+'</b><span>'+LBL[k]+'</span></div>'}).join('');
+  var judul=all?'Semua kelas hari ini':'Kelas '+esc(cur.kelas)+' hari ini';
+  var kelasSudah=D.kelas.filter(function(k){return per[k]&&per[k].s>0}).length;
+  var ringkas='';
+  if(all){
+    ringkas='<div class="card"><h2>Per kelas hari ini</h2><p style="color:var(--muted);margin-bottom:10px">'+kelasSudah+' dari '+D.kelas.length+' kelas sudah mengisi absensi.</p>'+
+    D.kelas.map(function(k){var p=per[k],pc=p.n?Math.round(p.H/p.n*100):0;
+      return '<div style="padding:8px 0;border-top:1px solid var(--line)"><div class="row sp"><b>'+esc(k)+'</b><small style="color:var(--muted)">'+(p.s?'Hadir '+p.H+' · Izin '+p.I+' · Sakit '+p.S+' · Alpa '+p.A:'Belum diabsen')+'</small></div><div class="bar" style="height:6px"><i style="width:'+pc+'%"></i></div></div>'}).join('')+'</div>';
+  }
+  var pilih=sess&&sess.admin?'<option value="ALL"'+(all?' selected':'')+'>Semua kelas</option>'+D.kelas.map(function(a){return '<option value="'+esc(a)+'"'+(!all&&a==cur.kelas?' selected':'')+'>'+esc(a)+'</option>'}).join(''):opt(D.kelas,cur.kelas);
+  var onch=sess&&sess.admin?"if(this.value==='ALL'){hk='ALL'}else{hk='';cur.kelas=this.value}cur.mark={};render()":"cur.kelas=this.value;cur.mark={};render()";
   return '<div class="hero"><div class="row sp"><div><p>Halo,</p><h1>'+esc(sess.nama)+'</h1></div><button class="btn ghost" style="width:auto;padding:8px 12px" onclick="logout()">Keluar</button></div><p style="margin-top:10px">'+tgl+'</p></div>'+
-  '<div class="card pull"><div class="row sp"><h2 style="margin:0">Kelas '+esc(cur.kelas)+' hari ini</h2></div><div class="stats" style="margin-top:12px">'+st+'</div>'+
+  '<div class="card pull"><div class="row sp"><h2 style="margin:0">'+judul+'</h2></div><div class="stats" style="margin-top:12px">'+st+'</div>'+
   '<div class="row sp" style="margin-top:14px"><small style="color:var(--muted)">Tingkat kehadiran</small><b>'+pct+'%</b></div><div class="bar"><i style="width:'+pct+'%"></i></div></div>'+
-  '<div class="card"><h2>'+(sudah?'Absensi hari ini sudah tercatat':'Absensi hari ini belum dibuat')+'</h2><p style="color:var(--muted);margin-bottom:12px">'+(sudah?sudah+' dari '+sis.length+' siswa sudah diabsen.':'Mulai catat kehadiran '+sis.length+' siswa kelas Anda.')+'</p><button class="btn" onclick="go(\'absen\')">'+(sudah?'Ubah absensi':'Mulai absen')+'</button></div>'+
-  '<div class="card"><h2>Ganti kelas</h2><select onchange="cur.kelas=this.value;cur.mark={};render()">'+opt(D.kelas,cur.kelas)+'</select></div>'
+  ringkas+
+  '<div class="card"><h2>'+(sudah?'Absensi hari ini sudah tercatat':'Absensi hari ini belum dibuat')+'</h2><p style="color:var(--muted);margin-bottom:12px">'+(sudah?sudah+' dari '+sis.length+' siswa sudah diabsen.':'Mulai catat kehadiran '+sis.length+' siswa '+(all?'di semua kelas.':'kelas Anda.'))+'</p><button class="btn" onclick="go(\'absen\')">'+(sudah?'Ubah absensi':'Mulai absen')+'</button></div>'+
+  '<div class="card"><h2>'+(sess&&sess.admin?'Tampilan kelas':'Ganti kelas')+'</h2><select onchange="'+onch+'">'+pilih+'</select></div>'
 }
 function logout(){
   var ada=akunList().some(function(a){return a.id==sess.id});
