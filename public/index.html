@@ -123,6 +123,10 @@ body{align-items:center;background:radial-gradient(circle at 15% 10%,rgba(108,76
 .rk{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.rk:last-of-type{border-bottom:0}
 .rk .md{width:30px;flex:none;text-align:center;font-size:22px;font-weight:800;color:var(--muted)}
 .rk .bar{height:6px;margin-top:6px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tile{border-radius:18px;padding:14px;color:#fff;display:flex;flex-direction:column;gap:2px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+.tile .ti{font-size:22px;line-height:1}.tile b{font-size:32px;font-weight:800;line-height:1.1;margin-top:4px}
+.tile small{font-size:13px;font-weight:700}.tile em{font-style:normal;font-size:11px;opacity:.92}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 #pwa{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));z-index:1000;display:none;flex-direction:column;gap:12px;width:calc(100% - 24px);max-width:440px;padding:14px;border:2px solid transparent;border-radius:24px;background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(135deg,var(--p),var(--p2)) border-box;color:var(--text);box-shadow:0 18px 44px rgba(60,40,160,.38);opacity:0;transform:translate(-50%,-130%);transition:transform .5s cubic-bezier(.2,.9,.3,1.15),opacity .3s}
 #pwa.show{opacity:1;transform:translate(-50%,0)}
@@ -277,15 +281,26 @@ function igHtml(all,sis,c,sudah,pct){
   var rank=d.sis.map(function(s){var a=d.st[s.id],k=a?a[P]:{H:0,I:0,S:0,A:0},t=k.H+k.I+k.S+k.A;return{s:s,c:k,t:t,p:t?k.H/t*100:0}})
     .filter(function(r){return r.t>0}).sort(function(a,b){return b.p-a.p||b.c.H-a.c.H||a.c.A-b.c.A||a.s.nama.localeCompare(b.s.nama)}).slice(0,5);
   var rows=rank.length?rank.map(function(r,i){return '<div class="rk"><div class="md">'+(['🥇','🥈','🥉'][i]||(i+1))+'</div><div class="av" style="background:'+PAL[i%8]+'">'+ini(r.s.nama)+'</div><div class="nm"><b>'+esc(r.s.nama)+'</b><small>'+esc(r.s.kelas)+' · Hadir '+r.c.H+' dari '+r.t+' hari</small><div class="bar"><i style="width:'+r.p+'%"></i></div></div><b style="font-size:16px">'+Math.round(r.p)+'%</b></div>'}).join(''):'<div class="empty">Belum ada data absensi pada periode ini.</div>';
-  var top='<div class="card"><h2 style="margin-bottom:0">5 Siswa Paling Rajin</h2><small style="color:var(--muted)">'+scope+'</small>'+
-    '<div class="chips" style="margin:12px 0 4px"><button class="'+(P=='bln'?'on':'')+'" onclick="tp=\'bln\';render()">Bulan ini</button><button class="'+(P=='all'?'on':'')+'" onclick="tp=\'all\';render()">Semua waktu</button></div>'+rows+
+  var top='<div class="card"><h2 style="margin-bottom:0">5 Siswa Paling Rajin</h2><small style="color:var(--muted)">'+scope+' — '+(P=='all'?'semua waktu':'bulan ini')+'</small>'+
+    '<div style="height:8px"></div>'+rows+
     '<small style="color:var(--muted);display:block;margin-top:10px">Dihitung dari persentase hadir pada hari efektif. Jika seri, yang hadirnya lebih banyak dan alpanya lebih sedikit lebih unggul.</small></div>';
   var low=d.sis.map(function(s){var a=d.st[s.id],k=a?a[P]:{H:0,I:0,S:0,A:0},t=k.H+k.I+k.S+k.A;return{s:s,c:k,t:t,p:t?k.H/t*100:0}})
     .filter(function(r){return r.t>0&&r.c.H<r.t}).sort(function(a,b){return a.p-b.p||b.c.A-a.c.A||(b.c.S+b.c.I)-(a.c.S+a.c.I)||a.s.nama.localeCompare(b.s.nama)}).slice(0,5);
   var lrows=low.length?low.map(function(r,i){var col=r.p>=75?COL.S:COL.A;return '<div class="rk"><div class="md">'+(i+1)+'</div><div class="av" style="background:'+PAL[i%8]+'">'+ini(r.s.nama)+'</div><div class="nm"><b>'+esc(r.s.nama)+'</b><small>'+esc(r.s.kelas)+' · Alpa '+r.c.A+' · Sakit '+r.c.S+' · Izin '+r.c.I+'</small><div class="bar"><i style="width:'+r.p+'%;background:linear-gradient(90deg,'+COL.A+','+COL.S+')"></i></div></div><b style="font-size:16px;color:'+col+'">'+Math.round(r.p)+'%</b></div>'}).join(''):(rank.length?'<div class="empty">Semua siswa hadir penuh pada periode ini 🎉</div>':'<div class="empty">Belum ada data absensi pada periode ini.</div>');
   var lowc='<div class="card"><h2 style="margin-bottom:0">5 Siswa Perlu Perhatian</h2><small style="color:var(--muted)">'+scope+' — kehadiran terendah, '+(P=='all'?'semua waktu':'bulan ini')+'</small><div style="height:8px"></div>'+lrows+
-    '<small style="color:var(--muted);display:block;margin-top:10px">Mengikuti periode yang dipilih pada kartu Siswa Paling Rajin. Jika seri, yang alpanya lebih banyak berada di atas.</small></div>';
-  return{h1:h1,rest:tren+bulan+top+lowc}
+    '<small style="color:var(--muted);display:block;margin-top:10px">Mengikuti periode yang dipilih pada kartu Ringkasan siswa. Jika seri, yang alpanya lebih banyak berada di atas.</small></div>';
+  var kc={F:0,S:0,I:0,A:0},kd={S:0,I:0,A:0},aktif=0;
+  d.sis.forEach(function(s){var a=d.st[s.id];if(!a)return;var k=a[P],t=k.H+k.I+k.S+k.A;if(!t)return;aktif++;if(k.H==t)kc.F++;
+    ['S','I','A'].forEach(function(x){if(k[x]>0){kc[x]++;kd[x]+=k[x]}})});
+  var tl=[['⭐','Paling rajin',kc.F,'hadir penuh, dari '+aktif+' siswa','linear-gradient(135deg,#12b886,#5fd6a8)'],
+    ['🤒','Anak sakit',kc.S,kd.S+' hari sakit','linear-gradient(135deg,#f59e0b,#fbbf5d)'],
+    ['📝','Anak izin',kc.I,kd.I+' hari izin','linear-gradient(135deg,#3b82f6,#6ea8ff)'],
+    ['🚫','Anak alpa',kc.A,kd.A+' hari alpa','linear-gradient(135deg,#ef4444,#ff7a7a)']];
+  var ring='<div class="card"><h2 style="margin-bottom:0">Ringkasan siswa</h2><small style="color:var(--muted)">'+scope+' — '+(P=='all'?'semua waktu':'bulan ini')+'</small>'+
+    '<div class="chips" style="margin:12px 0 0"><button class="'+(P=='bln'?'on':'')+'" onclick="tp=\'bln\';render()">Bulan ini</button><button class="'+(P=='all'?'on':'')+'" onclick="tp=\'all\';render()">Semua waktu</button></div>'+
+    '<div class="tiles">'+tl.map(function(x){return '<div class="tile" style="background:'+x[4]+'"><span class="ti">'+x[0]+'</span><b>'+x[2]+'</b><small>'+x[1]+'</small><em>'+x[3]+'</em></div>'}).join('')+'</div>'+
+    '<small style="color:var(--muted);display:block;margin-top:10px">Satu siswa dihitung sekali per kategori walaupun tidak hadir berulang kali.</small></div>';
+  return{h1:h1,rest:ring+tren+bulan+top+lowc}
 }
 function homeV(){
   var t=today(),all=!!(sess&&sess.admin&&hk==='ALL'),sis=all?D.siswa:D.siswa.filter(function(s){return s.kelas==cur.kelas}),c={H:0,I:0,S:0,A:0},sudah=0;
