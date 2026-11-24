@@ -107,6 +107,22 @@ label.row{font-weight:500;font-size:14px;color:var(--text)}
 @media (min-width:700px){
 body{align-items:center;background:radial-gradient(circle at 15% 10%,rgba(108,76,245,.42),transparent 45%),radial-gradient(circle at 85% 90%,rgba(255,95,162,.36),transparent 45%),var(--bg)}
 #app{height:min(900px,calc(100% - 32px));border-radius:32px;overflow:hidden;box-shadow:0 30px 80px rgba(40,20,120,.38)}}
+.ig{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;margin-top:8px}
+.dn{position:relative;width:132px;height:132px;flex:none}.dn svg{width:100%;height:100%;transform:rotate(-90deg)}
+.dn .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.dn .c b{font-size:28px;font-weight:800;line-height:1}.dn .c small{color:var(--muted);font-size:11px;margin-top:2px}
+.lg{flex:1;min-width:130px;display:grid;gap:8px}.lg div{display:flex;align-items:center;gap:8px;font-size:13px}
+.lg i{width:11px;height:11px;border-radius:50%;flex:none}.lg b{margin-left:auto}
+.tr{display:flex;align-items:flex-end;gap:8px;height:150px;margin-top:8px}
+.tr .col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.tr .bx{width:100%;max-width:36px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,var(--p2),var(--p))}
+.tr .v{font-size:11px;font-weight:800}.tr small{font-size:10px;color:var(--muted);text-align:center;line-height:1.25}
+.sb{display:flex;height:16px;border-radius:99px;overflow:hidden;background:var(--line);margin:10px 0 14px}.sb i{display:block;height:100%}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.mini b{display:block;font-size:20px;font-weight:800}.mini span{font-size:11px;color:var(--muted)}
+.rk{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.rk:last-of-type{border-bottom:0}
+.rk .md{width:30px;flex:none;text-align:center;font-size:22px;font-weight:800;color:var(--muted)}
+.rk .bar{height:6px;margin-top:6px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 #pwa{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));z-index:1000;display:none;flex-direction:column;gap:12px;width:calc(100% - 24px);max-width:440px;padding:14px;border:2px solid transparent;border-radius:24px;background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(135deg,var(--p),var(--p2)) border-box;color:var(--text);box-shadow:0 18px 44px rgba(60,40,160,.38);opacity:0;transform:translate(-50%,-130%);transition:transform .5s cubic-bezier(.2,.9,.3,1.15),opacity .3s}
 #pwa.show{opacity:1;transform:translate(-50%,0)}
@@ -220,6 +236,52 @@ function boot(){
   document.getElementById('v').innerHTML='<div class="empty" style="padding-top:40vh">Memuat sesi…</div>';
   api('sesi',t).then(function(r){if(r&&r.ok)masuk(r,true,'Selamat datang kembali, ');else{lsDel();render();muatSekolah()}}).catch(function(){render();muatSekolah()})
 }
+var tp='bln';
+function donut(v,total,pct){
+  var R=42,C=2*Math.PI*R,off=0,seg='',cols={H:COL.H,I:COL.I,S:COL.S,A:COL.A,B:'var(--line)'};
+  ['H','I','S','A','B'].forEach(function(k){var n=v[k]||0;if(!n||!total)return;var len=n/total*C;
+    seg+='<circle cx="55" cy="55" r="'+R+'" fill="none" style="stroke:'+cols[k]+'" stroke-width="14" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'"/>';off+=len});
+  return '<div class="dn"><svg viewBox="0 0 110 110" role="img" aria-label="Kehadiran hari ini '+pct+' persen"><circle cx="55" cy="55" r="'+R+'" fill="none" style="stroke:var(--line)" stroke-width="14"/>'+seg+'</svg><div class="c"><b>'+pct+'%</b><small>hadir</small></div></div>'
+}
+function igData(sis){
+  var ok={},bl=today().slice(0,7),st={},tgl={},mon={H:0,I:0,S:0,A:0};
+  sis.forEach(function(s){ok[s.id]=1});
+  Object.keys(D.absen).forEach(function(k){
+    var p=k.split('|'),d=p[0],v=D.absen[k];
+    if(!ok[p[1]]||heInfo(d).st=='T'||!(v in mon))return;
+    var a=st[p[1]]||(st[p[1]]={all:{H:0,I:0,S:0,A:0},bln:{H:0,I:0,S:0,A:0}});
+    a.all[v]++;
+    if(d.slice(0,7)==bl){a.bln[v]++;mon[v]++}
+    var x=tgl[d]||(tgl[d]={H:0,I:0,S:0,A:0});x[v]++
+  });
+  return{sis:sis,st:st,tgl:tgl,mon:mon,bl:bl}
+}
+function igHtml(all,sis,c,sudah,pct){
+  var d=igData(sis),bl=d.bl,n=sis.length,belum=Math.max(n-sudah,0),scope=all?'Seluruh sekolah':'Kelas '+esc(cur.kelas||'-');
+  var leg=['H','I','S','A'].map(function(k){return '<div><i style="background:'+COL[k]+'"></i>'+LBL[k]+'<b>'+c[k]+'</b></div>'}).join('')+'<div><i style="background:var(--line)"></i>Belum diabsen<b>'+belum+'</b></div>';
+  var h1='<div class="ig">'+donut({H:c.H,I:c.I,S:c.S,A:c.A,B:belum},n,pct)+'<div class="lg">'+leg+'</div></div>';
+
+  var ds=Object.keys(d.tgl).sort().slice(-7),tr=ds.length?'<div class="tr">'+ds.map(function(t){
+    var x=d.tgl[t],s=x.H+x.I+x.S+x.A,p=s?Math.round(x.H/s*100):0;
+    return '<div class="col"><span class="v">'+p+'%</span><div class="bx" style="height:'+Math.max(Math.round(p*.78),4)+'px"></div><small>'+parseD(t).toLocaleDateString('id-ID',{weekday:'short'})+'<br>'+t.slice(8)+'/'+t.slice(5,7)+'</small></div>'}).join('')+'</div>':'<div class="empty">Belum ada data absensi.</div>';
+  var tren='<div class="card"><h2 style="margin-bottom:0">Tren kehadiran</h2><small style="color:var(--muted)">'+scope+' — persentase hadir per hari efektif, 7 hari terakhir</small>'+tr+'</div>';
+
+  var m=d.mon,mt=m.H+m.I+m.S+m.A,mp=mt?Math.round(m.H/mt*100):0,hd=Object.keys(d.tgl).filter(function(t){return t.slice(0,7)==bl}).length,he=D.he[bl],heN=he?he.d.split('1').length-1:0;
+  var sb=mt?['H','I','S','A'].map(function(k){return m[k]?'<i style="width:'+(m[k]/mt*100)+'%;background:'+COL[k]+'"></i>':''}).join(''):'';
+  var bulan='<div class="card"><div class="row sp"><h2 style="margin:0">Rekap bulan ini</h2><span class="pill" style="background:var(--p);margin:0">'+bln(bl)+'</span></div>'+
+    '<div class="row sp" style="margin-top:12px"><span style="color:var(--muted)">Rata-rata kehadiran</span><b style="font-size:24px">'+mp+'%</b></div><div class="sb">'+sb+'</div>'+
+    '<div class="mini">'+['H','I','S','A'].map(function(k){return '<div><b style="color:'+COL[k]+'">'+m[k]+'</b><span>'+LBL[k]+'</span></div>'}).join('')+'</div>'+
+    '<small style="color:var(--muted);display:block;margin-top:12px">'+hd+' hari terabsen'+(heN?' dari '+heN+' hari efektif':'')+'</small></div>';
+
+  var P=tp=='all'?'all':'bln';
+  var rank=d.sis.map(function(s){var a=d.st[s.id],k=a?a[P]:{H:0,I:0,S:0,A:0},t=k.H+k.I+k.S+k.A;return{s:s,c:k,t:t,p:t?k.H/t*100:0}})
+    .filter(function(r){return r.t>0}).sort(function(a,b){return b.p-a.p||b.c.H-a.c.H||a.c.A-b.c.A||a.s.nama.localeCompare(b.s.nama)}).slice(0,5);
+  var rows=rank.length?rank.map(function(r,i){return '<div class="rk"><div class="md">'+(['🥇','🥈','🥉'][i]||(i+1))+'</div><div class="av" style="background:'+PAL[i%8]+'">'+ini(r.s.nama)+'</div><div class="nm"><b>'+esc(r.s.nama)+'</b><small>'+esc(r.s.kelas)+' · Hadir '+r.c.H+' dari '+r.t+' hari</small><div class="bar"><i style="width:'+r.p+'%"></i></div></div><b style="font-size:16px">'+Math.round(r.p)+'%</b></div>'}).join(''):'<div class="empty">Belum ada data absensi pada periode ini.</div>';
+  var top='<div class="card"><h2 style="margin-bottom:0">5 Siswa Paling Rajin</h2><small style="color:var(--muted)">'+scope+'</small>'+
+    '<div class="chips" style="margin:12px 0 4px"><button class="'+(P=='bln'?'on':'')+'" onclick="tp=\'bln\';render()">Bulan ini</button><button class="'+(P=='all'?'on':'')+'" onclick="tp=\'all\';render()">Semua waktu</button></div>'+rows+
+    '<small style="color:var(--muted);display:block;margin-top:10px">Dihitung dari persentase hadir pada hari efektif. Jika seri, yang hadirnya lebih banyak dan alpanya lebih sedikit lebih unggul.</small></div>';
+  return{h1:h1,rest:tren+bulan+top}
+}
 function homeV(){
   var t=today(),all=!!(sess&&sess.admin&&hk==='ALL'),sis=all?D.siswa:D.siswa.filter(function(s){return s.kelas==cur.kelas}),c={H:0,I:0,S:0,A:0},sudah=0;
   var per={};D.kelas.forEach(function(k){per[k]={n:0,s:0,H:0,I:0,S:0,A:0}});
@@ -227,6 +289,7 @@ function homeV(){
   var pct=sis.length?Math.round(c.H/sis.length*100):0;
   var tgl=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   var st=['H','I','S','A'].map(function(k){return '<div class="stat" style="background:'+COL[k]+'"><b>'+c[k]+'</b><span>'+LBL[k]+'</span></div>'}).join('');
+  var ig=igHtml(all,sis,c,sudah,pct);
   var judul=all?'Semua kelas hari ini':'Kelas '+esc(cur.kelas)+' hari ini';
   var kelasSudah=D.kelas.filter(function(k){return per[k]&&per[k].s>0}).length;
   var ringkas='';
@@ -238,8 +301,8 @@ function homeV(){
   var pilih=sess&&sess.admin?'<option value="ALL"'+(all?' selected':'')+'>Semua kelas</option>'+D.kelas.map(function(a){return '<option value="'+esc(a)+'"'+(!all&&a==cur.kelas?' selected':'')+'>'+esc(a)+'</option>'}).join(''):opt(D.kelas,cur.kelas);
   var onch=sess&&sess.admin?"if(this.value==='ALL'){hk='ALL'}else{hk='';cur.kelas=this.value}cur.mark={};render()":"cur.kelas=this.value;cur.mark={};render()";
   return '<div class="hero"><div class="row sp"><div><p>Halo,</p><h1>'+esc(sess.nama)+'</h1></div><button class="btn ghost" style="width:auto;padding:8px 12px" onclick="logout()">Keluar</button></div><p style="margin-top:10px">'+tgl+'</p></div>'+
-  '<div class="card pull"><div class="row sp"><h2 style="margin:0">'+judul+'</h2></div><div class="stats" style="margin-top:12px">'+st+'</div>'+
-  '<div class="row sp" style="margin-top:14px"><small style="color:var(--muted)">Tingkat kehadiran</small><b>'+pct+'%</b></div><div class="bar"><i style="width:'+pct+'%"></i></div></div>'+
+  '<div class="card pull"><h2 style="margin-bottom:0">'+judul+'</h2><small style="color:var(--muted)">Komposisi kehadiran siswa</small>'+ig.h1+'</div>'+
+  ig.rest+
   ringkas+
   '<div class="card"><h2>'+(sudah?'Absensi hari ini sudah tercatat':'Absensi hari ini belum dibuat')+'</h2><p style="color:var(--muted);margin-bottom:12px">'+(sudah?sudah+' dari '+sis.length+' siswa sudah diabsen.':'Mulai catat kehadiran '+sis.length+' siswa '+(all?'di semua kelas.':'kelas Anda.'))+'</p><button class="btn" onclick="go(\'absen\')">'+(sudah?'Ubah absensi':'Mulai absen')+'</button></div>'+
   '<div class="card"><h2>'+(sess&&sess.admin?'Tampilan kelas':'Ganti kelas')+'</h2><select onchange="'+onch+'">'+pilih+'</select></div>'
