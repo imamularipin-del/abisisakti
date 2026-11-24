@@ -111,8 +111,8 @@ body{align-items:center;background:radial-gradient(circle at 15% 10%,rgba(108,76
 .dn{position:relative;width:132px;height:132px;flex:none}.dn svg{width:100%;height:100%;transform:rotate(-90deg)}
 .dn .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .dn .c b{font-size:28px;font-weight:800;line-height:1}.dn .c small{color:var(--muted);font-size:11px;margin-top:2px}
-.lg{flex:1;min-width:130px;display:grid;gap:8px}.lg div{display:flex;align-items:center;gap:8px;font-size:13px}
-.lg i{width:11px;height:11px;border-radius:50%;flex:none}.lg b{margin-left:auto}
+.lgd{flex:1;min-width:130px;display:grid;gap:8px}.lgd div{display:flex;align-items:center;gap:8px;font-size:13px}
+.lgd i{width:11px;height:11px;border-radius:50%;flex:none}.lgd b{margin-left:auto}
 .tr{display:flex;align-items:flex-end;gap:8px;height:150px;margin-top:8px}
 .tr .col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
 .tr .bx{width:100%;max-width:36px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,var(--p2),var(--p))}
@@ -259,7 +259,7 @@ function igData(sis){
 function igHtml(all,sis,c,sudah,pct){
   var d=igData(sis),bl=d.bl,n=sis.length,belum=Math.max(n-sudah,0),scope=all?'Seluruh sekolah':'Kelas '+esc(cur.kelas||'-');
   var leg=['H','I','S','A'].map(function(k){return '<div><i style="background:'+COL[k]+'"></i>'+LBL[k]+'<b>'+c[k]+'</b></div>'}).join('')+'<div><i style="background:var(--line)"></i>Belum diabsen<b>'+belum+'</b></div>';
-  var h1='<div class="ig">'+donut({H:c.H,I:c.I,S:c.S,A:c.A,B:belum},n,pct)+'<div class="lg">'+leg+'</div></div>';
+  var h1='<div class="ig">'+donut({H:c.H,I:c.I,S:c.S,A:c.A,B:belum},n,pct)+'<div class="lgd">'+leg+'</div></div>';
 
   var ds=Object.keys(d.tgl).sort().slice(-7),tr=ds.length?'<div class="tr">'+ds.map(function(t){
     var x=d.tgl[t],s=x.H+x.I+x.S+x.A,p=s?Math.round(x.H/s*100):0;
