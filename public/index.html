@@ -149,9 +149,14 @@ body{align-items:center;background:radial-gradient(circle at 15% 10%,rgba(108,76
 .card.cl .cb{grid-template-rows:0fr}
 .atb{position:sticky;top:0;z-index:6;background:var(--bg);margin:0 -16px 10px;padding:10px 16px 8px;box-shadow:0 8px 14px -10px rgba(40,20,120,.4)}
 .atb .bar{margin:8px 0 10px}
-.afc{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px;scrollbar-width:none}.afc::-webkit-scrollbar{display:none}
-.afc button{flex:none;padding:7px 12px;border-radius:99px;border:2px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-weight:600;font-size:12px;cursor:pointer}
-.afc button.on{background:var(--p);border-color:var(--p);color:#fff}
+.afc{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:8px}
+.afc button{min-width:0;padding:6px 0 5px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--text);font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.afc button b{font-size:15px;font-weight:800;line-height:1.15}
+.afc button span{font-size:10.5px;font-weight:600;color:var(--muted)}
+.afc button[data-f=H] b{color:var(--h)}.afc button[data-f=I] b{color:var(--i)}.afc button[data-f=S] b{color:var(--s)}.afc button[data-f=A] b{color:var(--a)}
+.afc button.on{background:var(--p);border-color:var(--p)}.afc button.on b,.afc button.on span{color:#fff}
+.afc button.on[data-f=H]{background:var(--h);border-color:var(--h)}.afc button.on[data-f=I]{background:var(--i);border-color:var(--i)}
+.afc button.on[data-f=S]{background:var(--s);border-color:var(--s)}.afc button.on[data-f=A]{background:var(--a);border-color:var(--a)}
 .savebar{position:sticky;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:6;margin-top:6px}
 .savebar .btn{box-shadow:0 8px 22px rgba(108,76,245,.45)}
 .savebar.ok .btn{background:linear-gradient(135deg,#12b886,#5fd6a8);box-shadow:0 8px 22px rgba(18,184,134,.45)}
@@ -459,7 +464,7 @@ function alList(){
   return alSis().filter(function(s){var k=cur.mark[s.id];return(f=='all'||(f=='B'?!k:k==f))&&(!q||s.nama.toLowerCase().indexOf(q)>=0||String(s.nis).toLowerCase().indexOf(q)>=0)})
 }
 function alCounts(){var c={H:0,I:0,S:0,A:0,B:0,n:0};alSis().forEach(function(s){c.n++;var k=cur.mark[s.id];if(k)c[k]++;else c.B++});c.f=c.n-c.B;return c}
-function alChips(c){return[['all','Semua',c.n],['B','Belum',c.B],['H','Hadir',c.H],['I','Izin',c.I],['S','Sakit',c.S],['A','Alpa',c.A]].map(function(x){return '<button class="'+((cur.f||'all')==x[0]?'on':'')+'" onclick="alF(\''+x[0]+'\')">'+x[1]+' '+x[2]+'</button>'}).join('')}
+function alChips(c){return[['all','Semua',c.n],['B','Belum',c.B],['H','Hadir',c.H],['I','Izin',c.I],['S','Sakit',c.S],['A','Alpa',c.A]].map(function(x){return '<button data-f="'+x[0]+'" class="'+((cur.f||'all')==x[0]?'on':'')+'" onclick="alF(\''+x[0]+'\')" aria-label="'+x[1]+' '+x[2]+'"><b>'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join('')}
 function alRows(){
   var sis=alSis(),list=alList(),idx={};sis.forEach(function(s,i){idx[s.id]=i});
   if(!sis.length)return '<div class="empty">Belum ada siswa di kelas ini.</div>';
