@@ -2,7 +2,7 @@
  * - Cangkang aplikasi (HTML, ikon, manifest) disimpan agar aplikasi bisa dibuka tanpa internet.
  * - Data absensi TIDAK di-cache: semua panggilan ke Apps Script selalu lewat jaringan.
  * Naikkan VERSION setiap kali Anda ingin memaksa pengguna memakai berkas terbaru. */
-const VERSION = 'abisisakti-v5';
+const VERSION = 'abisisakti-v6';
 const SHELL = [
   '/',
   '/index.html',
