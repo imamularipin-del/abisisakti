@@ -147,6 +147,14 @@ body{align-items:center;background:radial-gradient(circle at 15% 10%,rgba(108,76
 .cb{display:grid;grid-template-rows:1fr;transition:grid-template-rows .25s ease}
 .cb>div{overflow:hidden;min-height:0;padding:0 4px 8px;margin:0 -4px -8px}
 .card.cl .cb{grid-template-rows:0fr}
+.atb{position:sticky;top:0;z-index:6;background:var(--bg);margin:0 -16px 10px;padding:10px 16px 8px;box-shadow:0 8px 14px -10px rgba(40,20,120,.4)}
+.atb .bar{margin:8px 0 10px}
+.afc{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px;scrollbar-width:none}.afc::-webkit-scrollbar{display:none}
+.afc button{flex:none;padding:7px 12px;border-radius:99px;border:2px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-weight:600;font-size:12px;cursor:pointer}
+.afc button.on{background:var(--p);border-color:var(--p);color:#fff}
+.savebar{position:sticky;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:6;margin-top:6px}
+.savebar .btn{box-shadow:0 8px 22px rgba(108,76,245,.45)}
+.savebar.ok .btn{background:linear-gradient(135deg,#12b886,#5fd6a8);box-shadow:0 8px 22px rgba(18,184,134,.45)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 #pwa{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));z-index:1000;display:none;flex-direction:column;gap:12px;width:calc(100% - 24px);max-width:440px;padding:14px;border:2px solid transparent;border-radius:24px;background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(135deg,var(--p),var(--p2)) border-box;color:var(--text);box-shadow:0 18px 44px rgba(60,40,160,.38);opacity:0;transform:translate(-50%,-130%);transition:transform .5s cubic-bezier(.2,.9,.3,1.15),opacity .3s}
 #pwa.show{opacity:1;transform:translate(-50%,0)}
@@ -445,22 +453,46 @@ function tglPanjang(t){return parseD(t).toLocaleDateString('id-ID',{weekday:'lon
 function setTgl(v){cur.tgl=v||today();render();if(heInfo(cur.tgl).st=='T')T.fire({icon:'info',title:'Hari Tidak Efektif (HTE)'})}
 function geser(n){var d=parseD(cur.tgl);d.setDate(d.getDate()+n);setTgl(fmtD(d))}
 function catatan(t){var w=parseD(t).getDay(),c='';if(t>today())c+='<br><small style="color:#f59e0b">Tanggal ini belum tiba.</small>';if(w==0||w==6)c+='<br><small style="color:#f59e0b">Tanggal ini jatuh pada akhir pekan.</small>';return c}
+function alSis(){return D.siswa.filter(function(s){return s.kelas==cur.kelas})}
+function alList(){
+  var q=(cur.q||'').trim().toLowerCase(),f=cur.f||'all';
+  return alSis().filter(function(s){var k=cur.mark[s.id];return(f=='all'||(f=='B'?!k:k==f))&&(!q||s.nama.toLowerCase().indexOf(q)>=0||String(s.nis).toLowerCase().indexOf(q)>=0)})
+}
+function alCounts(){var c={H:0,I:0,S:0,A:0,B:0,n:0};alSis().forEach(function(s){c.n++;var k=cur.mark[s.id];if(k)c[k]++;else c.B++});c.f=c.n-c.B;return c}
+function alChips(c){return[['all','Semua',c.n],['B','Belum',c.B],['H','Hadir',c.H],['I','Izin',c.I],['S','Sakit',c.S],['A','Alpa',c.A]].map(function(x){return '<button class="'+((cur.f||'all')==x[0]?'on':'')+'" onclick="alF(\''+x[0]+'\')">'+x[1]+' '+x[2]+'</button>'}).join('')}
+function alRows(){
+  var sis=alSis(),list=alList(),idx={};sis.forEach(function(s,i){idx[s.id]=i});
+  if(!sis.length)return '<div class="empty">Belum ada siswa di kelas ini.</div>';
+  if(!list.length)return '<div class="empty">'+((cur.f=='B'&&!(cur.q||'').trim())?'Semua siswa sudah terisi 🎉':'Tidak ada siswa yang cocok.')+'</div>';
+  return list.map(function(s){
+    return '<div class="stu"><div class="av" style="background:'+PAL[idx[s.id]%8]+'">'+ini(s.nama)+'</div><div class="nm"><b>'+esc(s.nama)+'</b><small>NIS '+esc(s.nis)+'</small></div><div class="seg">'+
+    ['H','I','S','A'].map(function(k){return '<button data-k="'+k+'" class="'+(cur.mark[s.id]==k?'on':'')+'" onclick="mark('+s.id+',\''+k+'\')" aria-label="'+LBL[k]+' untuk '+esc(s.nama)+'">'+k+'</button>'}).join('')+'</div></div>'}).join('')
+}
+function alStat(){
+  var c=alCounts(),g=function(i){return document.getElementById(i)};
+  if(g('apt'))g('apt').textContent='Terisi '+c.f+' dari '+c.n;
+  if(g('apb'))g('apb').style.width=(c.n?c.f/c.n*100:0)+'%';
+  if(g('afc'))g('afc').innerHTML=alChips(c);
+  if(g('sv')){g('sv').textContent='Simpan absensi · '+c.f+'/'+c.n;g('sv').parentNode.classList.toggle('ok',c.n>0&&c.f==c.n)}
+}
+function alRender(){var el=document.getElementById('al');if(!el){render();return}el.innerHTML=alRows();alStat()}
+function alF(f){cur.f=f;alRender()}
 function absenV(){
-  if(!cur.loaded||cur.loaded!=cur.kelas+cur.tgl){loadMark();cur.loaded=cur.kelas+cur.tgl}
-  var sis=D.siswa.filter(function(s){return s.kelas==cur.kelas}),filled=sis.filter(function(s){return cur.mark[s.id]}).length;
-  var rows=sis.length?sis.map(function(s,i){
-    return '<div class="stu"><div class="av" style="background:'+PAL[i%8]+'">'+ini(s.nama)+'</div><div class="nm"><b>'+esc(s.nama)+'</b><small>NIS '+s.nis+'</small></div><div class="seg">'+
-    ['H','I','S','A'].map(function(k){return '<button data-k="'+k+'" class="'+(cur.mark[s.id]==k?'on':'')+'" onclick="mark('+s.id+',\''+k+'\')" aria-label="'+LBL[k]+'">'+k+'</button>'}).join('')+'</div></div>'}).join(''):'<div class="empty">Belum ada siswa di kelas ini.</div>';
+  if(!cur.loaded||cur.loaded!=cur.kelas+cur.tgl){loadMark();cur.loaded=cur.kelas+cur.tgl;cur.q='';cur.f='all'}
+  var sis=alSis(),c=alCounts();
   return '<div class="hero" style="padding-bottom:30px"><h1>Absensi kelas</h1><p>Ketuk H, I, S, atau A untuk setiap siswa.</p></div>'+
   '<div class="card"><select style="margin-bottom:10px" onchange="cur.kelas=this.value;render()">'+opt(D.kelas,cur.kelas)+'</select>'+
   '<div class="dt"><button onclick="geser(-1)" aria-label="Hari sebelumnya">‹</button><input type="date" value="'+cur.tgl+'" onchange="setTgl(this.value)"><button onclick="geser(1)" aria-label="Hari berikutnya">›</button></div>'+
   '<div class="chips"><button class="'+(cur.tgl==hari(0)?'on':'')+'" onclick="setTgl(hari(0))">Hari ini</button><button class="'+(cur.tgl==hari(-1)?'on':'')+'" onclick="setTgl(hari(-1))">Kemarin</button><button class="'+(cur.tgl==hari(-2)?'on':'')+'" onclick="setTgl(hari(-2))">2 hari lalu</button></div>'+
-  '<div class="row sp" style="margin-bottom:8px"><b>'+tglPanjang(cur.tgl)+'</b><span class="pill" style="background:'+(sis.some(function(s){return D.absen[cur.tgl+"|"+s.id]})?COL.H:COL.S)+';margin:0">'+(sis.some(function(s){return D.absen[cur.tgl+"|"+s.id]})?'Sudah diabsen':'Belum diabsen')+'</span></div>'+bannerHE(cur.tgl)+
-  '<div class="row sp" style="margin-bottom:6px"><small style="color:var(--muted)">Terisi '+filled+' dari '+sis.length+'</small><button class="btn ghost" style="width:auto;padding:7px 12px" onclick="allH()">Semua hadir</button></div>'+rows+'</div>'+
-  '<button class="btn" onclick="simpan()">Simpan absensi</button>'
+  '<div class="row sp" style="margin-bottom:8px"><b>'+tglPanjang(cur.tgl)+'</b><span class="pill" style="background:'+(sis.some(function(s){return D.absen[cur.tgl+"|"+s.id]})?COL.H:COL.S)+';margin:0">'+(sis.some(function(s){return D.absen[cur.tgl+"|"+s.id]})?'Sudah diabsen':'Belum diabsen')+'</span></div>'+bannerHE(cur.tgl)+'</div>'+
+  '<div class="atb"><div class="row sp"><small id="apt" style="font-weight:700">Terisi '+c.f+' dari '+c.n+'</small><button class="btn ghost" style="width:auto;padding:6px 12px;font-size:12px" onclick="allH()">Semua hadir</button></div>'+
+  '<div class="bar"><i id="apb" style="width:'+(c.n?c.f/c.n*100:0)+'%"></i></div>'+
+  '<input type="search" placeholder="Cari nama atau NIS" aria-label="Cari siswa" autocomplete="off" value="'+esc(cur.q||'')+'" oninput="cur.q=this.value;alRender()"><div class="afc" id="afc">'+alChips(c)+'</div></div>'+
+  '<div class="card"><div id="al">'+alRows()+'</div></div>'+
+  '<div class="savebar'+(c.n>0&&c.f==c.n?' ok':'')+'"><button id="sv" class="btn" onclick="simpan()">Simpan absensi · '+c.f+'/'+c.n+'</button></div>'
 }
-function mark(id,k){cur.mark[id]=k;var y=document.getElementById('v').scrollTop;render();document.getElementById('v').scrollTop=y}
-function allH(){D.siswa.filter(function(s){return s.kelas==cur.kelas}).forEach(function(s){cur.mark[s.id]='H'});render();T.fire({icon:'info',title:'Semua siswa ditandai hadir'})}
+function mark(id,k){cur.mark[id]=k;alRender()}
+function allH(){alSis().forEach(function(s){cur.mark[s.id]='H'});alRender();T.fire({icon:'info',title:'Semua siswa ditandai hadir'})}
 function simpan(){
   if(heInfo(cur.tgl).st=='T'){Swal.fire({icon:'warning',title:'Hari Tidak Efektif (HTE)',text:tglPanjang(cur.tgl)+' ditetapkan admin sebagai hari tidak efektif, sehingga absensinya tidak dihitung di rekap. Tetap simpan?',showCancelButton:true,confirmButtonText:'Tetap simpan',cancelButtonText:'Batal',confirmButtonColor:'#f59e0b'}).then(function(r){if(r.isConfirmed)simpan2()});return}
   simpan2()
