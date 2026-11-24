@@ -301,11 +301,11 @@ function homeV(){
   var pilih=sess&&sess.admin?'<option value="ALL"'+(all?' selected':'')+'>Semua kelas</option>'+D.kelas.map(function(a){return '<option value="'+esc(a)+'"'+(!all&&a==cur.kelas?' selected':'')+'>'+esc(a)+'</option>'}).join(''):opt(D.kelas,cur.kelas);
   var onch=sess&&sess.admin?"if(this.value==='ALL'){hk='ALL'}else{hk='';cur.kelas=this.value}cur.mark={};render()":"cur.kelas=this.value;cur.mark={};render()";
   return '<div class="hero"><div class="row sp"><div><p>Halo,</p><h1>'+esc(sess.nama)+'</h1></div><button class="btn ghost" style="width:auto;padding:8px 12px" onclick="logout()">Keluar</button></div><p style="margin-top:10px">'+tgl+'</p></div>'+
-  '<div class="card pull"><h2 style="margin-bottom:0">'+judul+'</h2><small style="color:var(--muted)">Komposisi kehadiran siswa</small>'+ig.h1+'</div>'+
+  '<div class="card pull"><h2>'+(sudah?'Absensi hari ini sudah tercatat':'Absensi hari ini belum dibuat')+'</h2><p style="color:var(--muted);margin-bottom:12px">'+(sudah?sudah+' dari '+sis.length+' siswa sudah diabsen.':'Mulai catat kehadiran '+sis.length+' siswa '+(all?'di semua kelas.':'kelas Anda.'))+'</p><button class="btn" onclick="go(\'absen\')">'+(sudah?'Ubah absensi':'Mulai absen')+'</button></div>'+
+  '<div class="card"><h2>'+(sess&&sess.admin?'Tampilan kelas':'Ganti kelas')+'</h2><select onchange="'+onch+'">'+pilih+'</select></div>'+
+  '<div class="card"><h2 style="margin-bottom:0">'+judul+'</h2><small style="color:var(--muted)">Komposisi kehadiran siswa</small>'+ig.h1+'</div>'+
   ig.rest+
-  ringkas+
-  '<div class="card"><h2>'+(sudah?'Absensi hari ini sudah tercatat':'Absensi hari ini belum dibuat')+'</h2><p style="color:var(--muted);margin-bottom:12px">'+(sudah?sudah+' dari '+sis.length+' siswa sudah diabsen.':'Mulai catat kehadiran '+sis.length+' siswa '+(all?'di semua kelas.':'kelas Anda.'))+'</p><button class="btn" onclick="go(\'absen\')">'+(sudah?'Ubah absensi':'Mulai absen')+'</button></div>'+
-  '<div class="card"><h2>'+(sess&&sess.admin?'Tampilan kelas':'Ganti kelas')+'</h2><select onchange="'+onch+'">'+pilih+'</select></div>'
+  ringkas
 }
 function logout(){
   var ada=akunList().some(function(a){return a.id==sess.id});
