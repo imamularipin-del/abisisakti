@@ -241,6 +241,13 @@ function boot(){
   api('sesi',t).then(function(r){if(r&&r.ok)masuk(r,true,'Selamat datang kembali, ');else{lsDel();render();muatSekolah()}}).catch(function(){render();muatSekolah()})
 }
 var tp='bln';
+function pm(){return tp=='all'?'all':(tp=='bln'?today().slice(0,7):tp)}
+function setTp(v){tp=v||'all';render()}
+function geserBln(n){
+  var c=pm();if(c=='all')c=today().slice(0,7);
+  var d=new Date(+c.slice(0,4),+c.slice(5)-1+n,1),v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),l=bulanList();
+  if(v>today().slice(0,7)||v<l[l.length-1])return;setTp(v)
+}
 function donut(v,total,pct){
   var R=42,C=2*Math.PI*R,off=0,seg='',cols={H:COL.H,I:COL.I,S:COL.S,A:COL.A,B:'var(--line)'};
   ['H','I','S','A','B'].forEach(function(k){var n=v[k]||0;if(!n||!total)return;var len=n/total*C;
@@ -248,31 +255,32 @@ function donut(v,total,pct){
   return '<div class="dn"><svg viewBox="0 0 110 110" role="img" aria-label="Kehadiran hari ini '+pct+' persen"><circle cx="55" cy="55" r="'+R+'" fill="none" style="stroke:var(--line)" stroke-width="14"/>'+seg+'</svg><div class="c"><b>'+pct+'%</b><small>hadir</small></div></div>'
 }
 function igData(sis){
-  var ok={},bl=today().slice(0,7),st={},tgl={},mon={H:0,I:0,S:0,A:0};
+  var ok={},bl=pm(),st={},tgl={},mon={H:0,I:0,S:0,A:0};
   sis.forEach(function(s){ok[s.id]=1});
   Object.keys(D.absen).forEach(function(k){
     var p=k.split('|'),d=p[0],v=D.absen[k];
     if(!ok[p[1]]||heInfo(d).st=='T'||!(v in mon))return;
     var a=st[p[1]]||(st[p[1]]={all:{H:0,I:0,S:0,A:0},bln:{H:0,I:0,S:0,A:0}});
     a.all[v]++;
-    if(d.slice(0,7)==bl){a.bln[v]++;mon[v]++}
+    if(d.slice(0,7)==bl)a.bln[v]++;
+    if(bl=='all'||d.slice(0,7)==bl)mon[v]++;
     var x=tgl[d]||(tgl[d]={H:0,I:0,S:0,A:0});x[v]++
   });
   return{sis:sis,st:st,tgl:tgl,mon:mon,bl:bl}
 }
 function igHtml(all,sis,c,sudah,pct){
-  var d=igData(sis),bl=d.bl,n=sis.length,belum=Math.max(n-sudah,0),scope=all?'Seluruh sekolah':'Kelas '+esc(cur.kelas||'-');
+  var d=igData(sis),bl=d.bl,lbl=d.bl=='all'?'semua waktu':bln(d.bl),n=sis.length,belum=Math.max(n-sudah,0),scope=all?'Seluruh sekolah':'Kelas '+esc(cur.kelas||'-');
   var leg=['H','I','S','A'].map(function(k){return '<div><i style="background:'+COL[k]+'"></i>'+LBL[k]+'<b>'+c[k]+'</b></div>'}).join('')+'<div><i style="background:var(--line)"></i>Belum diabsen<b>'+belum+'</b></div>';
   var h1='<div class="ig">'+donut({H:c.H,I:c.I,S:c.S,A:c.A,B:belum},n,pct)+'<div class="lgd">'+leg+'</div></div>';
 
-  var ds=Object.keys(d.tgl).sort().slice(-7),tr=ds.length?'<div class="tr">'+ds.map(function(t){
+  var ds=Object.keys(d.tgl).filter(function(t){return bl=='all'||t.slice(0,7)==bl}).sort().slice(-7),tr=ds.length?'<div class="tr">'+ds.map(function(t){
     var x=d.tgl[t],s=x.H+x.I+x.S+x.A,p=s?Math.round(x.H/s*100):0;
     return '<div class="col"><span class="v">'+p+'%</span><div class="bx" style="height:'+Math.max(Math.round(p*.78),4)+'px"></div><small>'+parseD(t).toLocaleDateString('id-ID',{weekday:'short'})+'<br>'+t.slice(8)+'/'+t.slice(5,7)+'</small></div>'}).join('')+'</div>':'<div class="empty">Belum ada data absensi.</div>';
-  var tren='<div class="card"><h2 style="margin-bottom:0">Tren kehadiran</h2><small style="color:var(--muted)">'+scope+' — persentase hadir per hari efektif, 7 hari terakhir</small>'+tr+'</div>';
+  var tren='<div class="card"><h2 style="margin-bottom:0">Tren kehadiran</h2><small style="color:var(--muted)">'+scope+' — persentase hadir per hari efektif, 7 hari terakhir ('+lbl+')</small>'+tr+'</div>';
 
-  var m=d.mon,mt=m.H+m.I+m.S+m.A,mp=mt?Math.round(m.H/mt*100):0,hd=Object.keys(d.tgl).filter(function(t){return t.slice(0,7)==bl}).length,he=D.he[bl],heN=he?he.d.split('1').length-1:0;
+  var m=d.mon,mt=m.H+m.I+m.S+m.A,mp=mt?Math.round(m.H/mt*100):0,hd=Object.keys(d.tgl).filter(function(t){return bl=='all'||t.slice(0,7)==bl}).length,he=bl=='all'?null:D.he[bl],heN=he?he.d.split('1').length-1:0;
   var sb=mt?['H','I','S','A'].map(function(k){return m[k]?'<i style="width:'+(m[k]/mt*100)+'%;background:'+COL[k]+'"></i>':''}).join(''):'';
-  var bulan='<div class="card"><div class="row sp"><h2 style="margin:0">Rekap bulan ini</h2><span class="pill" style="background:var(--p);margin:0">'+bln(bl)+'</span></div>'+
+  var bulan='<div class="card"><div class="row sp"><h2 style="margin:0">Rekap kehadiran</h2><span class="pill" style="background:var(--p);margin:0">'+(bl=='all'?'Semua waktu':bln(bl))+'</span></div>'+
     '<div class="row sp" style="margin-top:12px"><span style="color:var(--muted)">Rata-rata kehadiran</span><b style="font-size:24px">'+mp+'%</b></div><div class="sb">'+sb+'</div>'+
     '<div class="mini">'+['H','I','S','A'].map(function(k){return '<div><b style="color:'+COL[k]+'">'+m[k]+'</b><span>'+LBL[k]+'</span></div>'}).join('')+'</div>'+
     '<small style="color:var(--muted);display:block;margin-top:12px">'+hd+' hari terabsen'+(heN?' dari '+heN+' hari efektif':'')+'</small></div>';
@@ -281,14 +289,14 @@ function igHtml(all,sis,c,sudah,pct){
   var rank=d.sis.map(function(s){var a=d.st[s.id],k=a?a[P]:{H:0,I:0,S:0,A:0},t=k.H+k.I+k.S+k.A;return{s:s,c:k,t:t,p:t?k.H/t*100:0}})
     .filter(function(r){return r.t>0}).sort(function(a,b){return b.p-a.p||b.c.H-a.c.H||a.c.A-b.c.A||a.s.nama.localeCompare(b.s.nama)}).slice(0,5);
   var rows=rank.length?rank.map(function(r,i){return '<div class="rk"><div class="md">'+(['🥇','🥈','🥉'][i]||(i+1))+'</div><div class="av" style="background:'+PAL[i%8]+'">'+ini(r.s.nama)+'</div><div class="nm"><b>'+esc(r.s.nama)+'</b><small>'+esc(r.s.kelas)+' · Hadir '+r.c.H+' dari '+r.t+' hari</small><div class="bar"><i style="width:'+r.p+'%"></i></div></div><b style="font-size:16px">'+Math.round(r.p)+'%</b></div>'}).join(''):'<div class="empty">Belum ada data absensi pada periode ini.</div>';
-  var top='<div class="card"><h2 style="margin-bottom:0">5 Siswa Paling Rajin</h2><small style="color:var(--muted)">'+scope+' — '+(P=='all'?'semua waktu':'bulan ini')+'</small>'+
+  var top='<div class="card"><h2 style="margin-bottom:0">5 Siswa Paling Rajin</h2><small style="color:var(--muted)">'+scope+' — '+lbl+'</small>'+
     '<div style="height:8px"></div>'+rows+
     '<small style="color:var(--muted);display:block;margin-top:10px">Dihitung dari persentase hadir pada hari efektif. Jika seri, yang hadirnya lebih banyak dan alpanya lebih sedikit lebih unggul.</small></div>';
   var low=d.sis.map(function(s){var a=d.st[s.id],k=a?a[P]:{H:0,I:0,S:0,A:0},t=k.H+k.I+k.S+k.A;return{s:s,c:k,t:t,p:t?k.H/t*100:0}})
     .filter(function(r){return r.t>0&&r.c.H<r.t}).sort(function(a,b){return a.p-b.p||b.c.A-a.c.A||(b.c.S+b.c.I)-(a.c.S+a.c.I)||a.s.nama.localeCompare(b.s.nama)}).slice(0,5);
   var lrows=low.length?low.map(function(r,i){var col=r.p>=75?COL.S:COL.A;return '<div class="rk"><div class="md">'+(i+1)+'</div><div class="av" style="background:'+PAL[i%8]+'">'+ini(r.s.nama)+'</div><div class="nm"><b>'+esc(r.s.nama)+'</b><small>'+esc(r.s.kelas)+' · Alpa '+r.c.A+' · Sakit '+r.c.S+' · Izin '+r.c.I+'</small><div class="bar"><i style="width:'+r.p+'%;background:linear-gradient(90deg,'+COL.A+','+COL.S+')"></i></div></div><b style="font-size:16px;color:'+col+'">'+Math.round(r.p)+'%</b></div>'}).join(''):(rank.length?'<div class="empty">Semua siswa hadir penuh pada periode ini 🎉</div>':'<div class="empty">Belum ada data absensi pada periode ini.</div>');
-  var lowc='<div class="card"><h2 style="margin-bottom:0">5 Siswa Perlu Perhatian</h2><small style="color:var(--muted)">'+scope+' — kehadiran terendah, '+(P=='all'?'semua waktu':'bulan ini')+'</small><div style="height:8px"></div>'+lrows+
-    '<small style="color:var(--muted);display:block;margin-top:10px">Mengikuti periode yang dipilih pada kartu Ringkasan siswa. Jika seri, yang alpanya lebih banyak berada di atas.</small></div>';
+  var lowc='<div class="card"><h2 style="margin-bottom:0">5 Siswa Perlu Perhatian</h2><small style="color:var(--muted)">'+scope+' — kehadiran terendah, '+lbl+'</small><div style="height:8px"></div>'+lrows+
+    '<small style="color:var(--muted);display:block;margin-top:10px">Mengikuti bulan yang dipilih pada kartu Ringkasan siswa. Jika seri, yang alpanya lebih banyak berada di atas.</small></div>';
   var kc={F:0,S:0,I:0,A:0},kd={S:0,I:0,A:0},aktif=0;
   d.sis.forEach(function(s){var a=d.st[s.id];if(!a)return;var k=a[P],t=k.H+k.I+k.S+k.A;if(!t)return;aktif++;if(k.H==t)kc.F++;
     ['S','I','A'].forEach(function(x){if(k[x]>0){kc[x]++;kd[x]+=k[x]}})});
@@ -296,8 +304,8 @@ function igHtml(all,sis,c,sudah,pct){
     ['🤒','Anak sakit',kc.S,kd.S+' hari sakit','linear-gradient(135deg,#f59e0b,#fbbf5d)'],
     ['📝','Anak izin',kc.I,kd.I+' hari izin','linear-gradient(135deg,#3b82f6,#6ea8ff)'],
     ['🚫','Anak alpa',kc.A,kd.A+' hari alpa','linear-gradient(135deg,#ef4444,#ff7a7a)']];
-  var ring='<div class="card"><h2 style="margin-bottom:0">Ringkasan siswa</h2><small style="color:var(--muted)">'+scope+' — '+(P=='all'?'semua waktu':'bulan ini')+'</small>'+
-    '<div class="chips" style="margin:12px 0 0"><button class="'+(P=='bln'?'on':'')+'" onclick="tp=\'bln\';render()">Bulan ini</button><button class="'+(P=='all'?'on':'')+'" onclick="tp=\'all\';render()">Semua waktu</button></div>'+
+  var ring='<div class="card"><h2 style="margin-bottom:0">Ringkasan siswa</h2><small style="color:var(--muted)">'+scope+' — '+lbl+'</small>'+
+    '<div class="dt" style="margin:12px 0 0"><button onclick="geserBln(-1)" aria-label="Bulan sebelumnya">‹</button><select aria-label="Pilih bulan" onchange="setTp(this.value)" style="flex:1;min-width:0"><option value="all"'+(d.bl=='all'?' selected':'')+'>Semua waktu</option>'+bulanList().map(function(b){return '<option value="'+b+'"'+(b==d.bl?' selected':'')+'>'+bln(b)+'</option>'}).join('')+'</select><button onclick="geserBln(1)" aria-label="Bulan berikutnya">›</button></div>'+
     '<div class="tiles">'+tl.map(function(x){return '<div class="tile" style="background:'+x[4]+'"><span class="ti">'+x[0]+'</span><b>'+x[2]+'</b><small>'+x[1]+'</small><em>'+x[3]+'</em></div>'}).join('')+'</div>'+
     '<small style="color:var(--muted);display:block;margin-top:10px">Satu siswa dihitung sekali per kategori walaupun tidak hadir berulang kali.</small></div>';
   return{h1:h1,rest:ring+tren+bulan+top+lowc}
