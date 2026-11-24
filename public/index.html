@@ -280,7 +280,12 @@ function igHtml(all,sis,c,sudah,pct){
   var top='<div class="card"><h2 style="margin-bottom:0">5 Siswa Paling Rajin</h2><small style="color:var(--muted)">'+scope+'</small>'+
     '<div class="chips" style="margin:12px 0 4px"><button class="'+(P=='bln'?'on':'')+'" onclick="tp=\'bln\';render()">Bulan ini</button><button class="'+(P=='all'?'on':'')+'" onclick="tp=\'all\';render()">Semua waktu</button></div>'+rows+
     '<small style="color:var(--muted);display:block;margin-top:10px">Dihitung dari persentase hadir pada hari efektif. Jika seri, yang hadirnya lebih banyak dan alpanya lebih sedikit lebih unggul.</small></div>';
-  return{h1:h1,rest:tren+bulan+top}
+  var low=d.sis.map(function(s){var a=d.st[s.id],k=a?a[P]:{H:0,I:0,S:0,A:0},t=k.H+k.I+k.S+k.A;return{s:s,c:k,t:t,p:t?k.H/t*100:0}})
+    .filter(function(r){return r.t>0&&r.c.H<r.t}).sort(function(a,b){return a.p-b.p||b.c.A-a.c.A||(b.c.S+b.c.I)-(a.c.S+a.c.I)||a.s.nama.localeCompare(b.s.nama)}).slice(0,5);
+  var lrows=low.length?low.map(function(r,i){var col=r.p>=75?COL.S:COL.A;return '<div class="rk"><div class="md">'+(i+1)+'</div><div class="av" style="background:'+PAL[i%8]+'">'+ini(r.s.nama)+'</div><div class="nm"><b>'+esc(r.s.nama)+'</b><small>'+esc(r.s.kelas)+' · Alpa '+r.c.A+' · Sakit '+r.c.S+' · Izin '+r.c.I+'</small><div class="bar"><i style="width:'+r.p+'%;background:linear-gradient(90deg,'+COL.A+','+COL.S+')"></i></div></div><b style="font-size:16px;color:'+col+'">'+Math.round(r.p)+'%</b></div>'}).join(''):(rank.length?'<div class="empty">Semua siswa hadir penuh pada periode ini 🎉</div>':'<div class="empty">Belum ada data absensi pada periode ini.</div>');
+  var lowc='<div class="card"><h2 style="margin-bottom:0">5 Siswa Perlu Perhatian</h2><small style="color:var(--muted)">'+scope+' — kehadiran terendah, '+(P=='all'?'semua waktu':'bulan ini')+'</small><div style="height:8px"></div>'+lrows+
+    '<small style="color:var(--muted);display:block;margin-top:10px">Mengikuti periode yang dipilih pada kartu Siswa Paling Rajin. Jika seri, yang alpanya lebih banyak berada di atas.</small></div>';
+  return{h1:h1,rest:tren+bulan+top+lowc}
 }
 function homeV(){
   var t=today(),all=!!(sess&&sess.admin&&hk==='ALL'),sis=all?D.siswa:D.siswa.filter(function(s){return s.kelas==cur.kelas}),c={H:0,I:0,S:0,A:0},sudah=0;
