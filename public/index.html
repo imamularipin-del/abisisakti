@@ -160,6 +160,13 @@ body{align-items:center;background:radial-gradient(circle at 15% 10%,rgba(108,76
 .savebar{position:sticky;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:6;margin-top:6px}
 .savebar .btn{box-shadow:0 8px 22px rgba(108,76,245,.45)}
 .savebar.ok .btn{background:linear-gradient(135deg,#12b886,#5fd6a8);box-shadow:0 8px 22px rgba(18,184,134,.45)}
+.pgb{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 2px}
+.pgb small{color:var(--muted);font-weight:600}
+.pgb select,.pgn select{width:auto;padding:7px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.pgn{display:flex;align-items:center;gap:8px;margin-top:12px}
+.pgn button{flex:1;min-width:0;padding:10px 6px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.pgn button:disabled{opacity:.4;cursor:default}
+.pgn select{flex:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 #pwa{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));z-index:1000;display:none;flex-direction:column;gap:12px;width:calc(100% - 24px);max-width:440px;padding:14px;border:2px solid transparent;border-radius:24px;background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(135deg,var(--p),var(--p2)) border-box;color:var(--text);box-shadow:0 18px 44px rgba(60,40,160,.38);opacity:0;transform:translate(-50%,-130%);transition:transform .5s cubic-bezier(.2,.9,.3,1.15),opacity .3s}
 #pwa.show{opacity:1;transform:translate(-50%,0)}
@@ -585,15 +592,16 @@ function sekSimpan(){
 }
 var sq={q:'',k:''};
 function kelasBaru(k){if(k&&D.kelas.indexOf(k)<0){D.kelas.push(k);D.kelas.sort()}}
+function sisList(){var q=sq.q.trim().toLowerCase();return D.siswa.filter(function(s){return(!sq.k||s.kelas==sq.k)&&(!q||s.nama.toLowerCase().indexOf(q)>=0||String(s.nis).toLowerCase().indexOf(q)>=0)}).sort(function(a,b){return a.kelas==b.kelas?a.nama.localeCompare(b.nama):a.kelas.localeCompare(b.kelas)})}
 function sisRows(){
-  var q=sq.q.toLowerCase(),l=D.siswa.filter(function(s){return(!sq.k||s.kelas==sq.k)&&(!q||s.nama.toLowerCase().indexOf(q)>=0||s.nis.toLowerCase().indexOf(q)>=0)})
-    .sort(function(a,b){return a.kelas==b.kelas?a.nama.localeCompare(b.nama):a.kelas.localeCompare(b.kelas)});
-  return l.length?'<small style="color:var(--muted)">'+l.length+' siswa</small>'+l.map(function(s,i){return '<div class="stu" style="cursor:pointer" onclick="sisForm('+s.id+')"><div class="av" style="background:'+PAL[i%8]+'">'+ini(s.nama)+'</div><div class="nm"><b>'+esc(s.nama)+'</b><small>NIS '+esc(s.nis)+'</small></div><span class="pill" style="background:'+COL.I+';margin:0">'+esc(s.kelas)+'</span></div>'}).join(''):'<div class="empty">Tidak ada siswa yang cocok.</div>'
+  var l=sisList(),r=pgSlice(l,pg.adm);
+  if(!l.length)return pgHead('adm',r)+'<div class="empty">Tidak ada siswa yang cocok.</div>';
+  return pgHead('adm',r)+r.rows.map(function(s,i){return '<div class="stu" style="cursor:pointer" onclick="sisForm('+s.id+')"><div class="av" style="background:'+PAL[(r.a+i)%8]+'">'+ini(s.nama)+'</div><div class="nm"><b>'+esc(s.nama)+'</b><small>NIS '+esc(s.nis)+'</small></div><span class="pill" style="background:'+COL.I+';margin:0">'+esc(s.kelas)+'</span></div>'}).join('')+pgNav('adm',r)
 }
 function sisFilter(){document.getElementById('sl').innerHTML=sisRows()}
 function sisV(){
   return '<div class="hero" style="padding-bottom:30px"><h1>Data siswa</h1><p>Kelola siswa dari semua kelas. Ketuk siswa untuk mengubah atau menghapus.</p></div>'+
-  '<div class="card"><button class="btn" style="margin-bottom:10px" onclick="sisForm(0)">+ Tambah siswa</button><div class="tools"><input placeholder="Cari nama atau NIS" value="'+esc(sq.q)+'" oninput="sq.q=this.value;sisFilter()"><select onchange="sq.k=this.value;sisFilter()">'+opt(D.kelas,sq.k,'Semua kelas')+'</select></div><div id="sl">'+sisRows()+'</div></div>'
+  '<div class="card"><button class="btn" style="margin-bottom:10px" onclick="sisForm(0)">+ Tambah siswa</button><div class="tools"><input type="search" placeholder="Cari nama atau NIS" aria-label="Cari siswa" autocomplete="off" value="'+esc(sq.q)+'" oninput="sq.q=this.value;pg.adm.p=1;sisFilter()"><select onchange="sq.k=this.value;pg.adm.p=1;sisFilter()">'+opt(D.kelas,sq.k,'Semua kelas')+'</select></div><div id="sl">'+sisRows()+'</div></div>'
 }
 function sisForm(id){
   var baru=!id,s=baru?{nama:'',nis:'',kelas:sq.k||''}:D.siswa.filter(function(x){return x.id==id})[0],$=function(x){return document.getElementById(x)};
@@ -669,11 +677,32 @@ function detail(id){
   Swal.fire({title:s.nama,html:'<div style="max-height:260px;overflow:auto;text-align:left">'+(list.length?list.map(function(x){return '<div class="row sp" style="padding:7px 0;border-bottom:1px solid #e6e4f7"><span>'+new Date(x[0]).toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'})+'</span><span class="pill" style="background:'+COL[x[1]]+'">'+LBL[x[1]]+'</span></div>'}).join(''):'Belum ada data bulan ini.')+'</div>',confirmButtonText:'Tutup',confirmButtonColor:'#6c4cf5'})
 }
 
+var PGK='absensi-pg',pg={sis:{p:1,n:20,q:''},adm:{p:1,n:20}};
+try{var _p=JSON.parse(localStorage.getItem(PGK)||'{}');if(_p.sis!=null)pg.sis.n=_p.sis;if(_p.adm!=null)pg.adm.n=_p.adm}catch(e){}
+function pgSave(){try{localStorage.setItem(PGK,JSON.stringify({sis:pg.sis.n,adm:pg.adm.n}))}catch(e){}}
+function pgSlice(l,st){var n=st.n,tot=l.length,pages=n?Math.max(1,Math.ceil(tot/n)):1;st.p=Math.min(Math.max(st.p,1),pages);var a=n?(st.p-1)*n:0,b=n?Math.min(a+n,tot):tot;return{rows:l.slice(a,b),a:a,b:b,tot:tot,pages:pages}}
+function pgHead(key,r){var st=pg[key];return '<div class="pgb"><small>'+(r.tot?(r.a+1)+'–'+r.b+' dari '+r.tot+' siswa':'0 siswa')+'</small><select aria-label="Jumlah siswa per halaman" onchange="pgN(\''+key+'\',this.value)">'+[10,20,50,0].map(function(n){return '<option value="'+n+'"'+(st.n==n?' selected':'')+'>'+(n?n+' / halaman':'Semua')+'</option>'}).join('')+'</select></div>'}
+function pgNav(key,r){
+  if(r.pages<2)return '';var st=pg[key],o='';
+  for(var i=1;i<=r.pages;i++)o+='<option value="'+i+'"'+(i==st.p?' selected':'')+'>Hal '+i+' dari '+r.pages+'</option>';
+  return '<div class="pgn"><button onclick="pgGo(\''+key+'\',-1)"'+(st.p<=1?' disabled':'')+'>‹ Sebelumnya</button><select aria-label="Pilih halaman" onchange="pgTo(\''+key+'\',this.value)">'+o+'</select><button onclick="pgGo(\''+key+'\',1)"'+(st.p>=r.pages?' disabled':'')+'>Berikutnya ›</button></div>'
+}
+function pgRefresh(key){if(key=='adm')sisFilter();else siswaFilter();var el=document.getElementById(key=='adm'?'sl':'sl2');if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})}
+function pgGo(key,d){pg[key].p+=d;pgRefresh(key)}
+function pgTo(key,v){pg[key].p=+v;pgRefresh(key)}
+function pgN(key,v){pg[key].n=+v;pg[key].p=1;pgSave();pgRefresh(key)}
+function siswaList(){var q=(pg.sis.q||'').trim().toLowerCase();return D.siswa.filter(function(s){return s.kelas==cur.kelas&&(!q||s.nama.toLowerCase().indexOf(q)>=0||String(s.nis).toLowerCase().indexOf(q)>=0)}).sort(function(a,b){return a.nama.localeCompare(b.nama)})}
+function siswaRows(){
+  if(!D.siswa.some(function(s){return s.kelas==cur.kelas}))return '<div class="empty">Belum ada siswa. Tambahkan siswa pertama.</div>';
+  var l=siswaList(),r=pgSlice(l,pg.sis);
+  if(!l.length)return pgHead('sis',r)+'<div class="empty">Tidak ada siswa yang cocok.</div>';
+  return pgHead('sis',r)+r.rows.map(function(s,i){return '<div class="stu"><div class="av" style="background:'+PAL[(r.a+i)%8]+'">'+ini(s.nama)+'</div><div class="nm"><b>'+esc(s.nama)+'</b><small>NIS '+esc(s.nis)+'</small></div><button class="btn ghost" style="width:auto;padding:8px 12px;color:var(--a)" onclick="hapus('+s.id+')">Hapus</button></div>'}).join('')+pgNav('sis',r)
+}
+function siswaFilter(){document.getElementById('sl2').innerHTML=siswaRows()}
 function siswaV(){
-  var sis=D.siswa.filter(function(s){return s.kelas==cur.kelas});
-  var rows=sis.length?sis.map(function(s,i){return '<div class="stu"><div class="av" style="background:'+PAL[i%8]+'">'+ini(s.nama)+'</div><div class="nm"><b>'+esc(s.nama)+'</b><small>NIS '+esc(s.nis)+'</small></div><button class="btn ghost" style="width:auto;padding:8px 12px;color:var(--a)" onclick="hapus('+s.id+')">Hapus</button></div>'}).join(''):'<div class="empty">Belum ada siswa. Tambahkan siswa pertama.</div>';
   return '<div class="hero" style="padding-bottom:30px"><h1>Data siswa</h1><p>Kelola daftar siswa per kelas.</p></div>'+
-  '<div class="card"><div class="tools"><select onchange="cur.kelas=this.value;render()">'+opt(D.kelas,cur.kelas)+'</select><button class="btn" style="flex:none;width:auto" onclick="tambah()">+ Siswa</button></div>'+rows+'</div>'
+  '<div class="card"><div class="tools"><select onchange="cur.kelas=this.value;pg.sis.p=1;pg.sis.q=\'\';render()">'+opt(D.kelas,cur.kelas)+'</select><button class="btn" style="flex:none;width:auto" onclick="tambah()">+ Siswa</button></div>'+
+  '<input type="search" placeholder="Cari nama atau NIS" aria-label="Cari siswa" autocomplete="off" value="'+esc(pg.sis.q||'')+'" oninput="pg.sis.q=this.value;pg.sis.p=1;siswaFilter()" style="margin-bottom:10px"><div id="sl2">'+siswaRows()+'</div></div>'
 }
 function tambah(){
   Swal.fire({title:'Tambah siswa',html:'<input id="sn" class="swal2-input" placeholder="Nama lengkap"><input id="si" class="swal2-input" placeholder="NIS">',showCancelButton:true,confirmButtonText:'Tambah',cancelButtonText:'Batal',confirmButtonColor:'#6c4cf5',
